@@ -8,7 +8,11 @@ export BLUESHELL_BUILD_CONFIG="$(realpath "$config")"
 
 rm -rf dist
 mkdir -p dist
-cargo build --release --locked --offline --target "$target"
+features=()
+if [[ "${BLUESHELL_DEBUG:-0}" == "1" ]]; then
+  features=(--features diagnostics)
+fi
+cargo build --release --locked --offline --target "$target" "${features[@]}"
 release="target/$target/release"
 
 case "$output_type" in

@@ -23,6 +23,7 @@ endif()
 
 set(STAGE0_SOURCES
     src/core.c
+    src/debug.c
     src/message.c
     src/tasks.c
     src/transport.c

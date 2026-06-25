@@ -8,13 +8,13 @@ pub mod runtime;
 pub mod transport;
 
 #[cfg(feature = "diagnostics")]
+#[macro_export]
 macro_rules! diagnostic {
-    ($($arg:tt)*) => { eprintln!($($arg)*) };
+    ($($arg:tt)*) => {{ eprintln!($($arg)*) }};
 }
 
 #[cfg(not(feature = "diagnostics"))]
+#[macro_export]
 macro_rules! diagnostic {
-    ($($arg:tt)*) => {};
+    ($($arg:tt)*) => {{}};
 }
-
-pub(crate) use diagnostic;

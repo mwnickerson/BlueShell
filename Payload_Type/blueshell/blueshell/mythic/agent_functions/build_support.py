@@ -108,6 +108,7 @@ def native_config(config: dict[str, Any]) -> dict[str, Any]:
         "jitter_pct": max(0, min(100, jitter)),
         "commands": list(config.get("commands") or []),
         "output_type": str(config.get("output_type") or "exe"),
+        "debug": bool(config.get("debug", False)),
     }
 
 
@@ -177,6 +178,7 @@ def run_agent_build(
                 "BLUESHELL_BUILD_CONFIG": str(config_path),
                 "BLUESHELL_OUTPUT_TYPE": output_type,
                 "BLUESHELL_STAGE": stage,
+                "BLUESHELL_DEBUG": "1" if stamped_config["debug"] else "0",
             }
         )
 

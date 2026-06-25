@@ -105,5 +105,7 @@ void s0_set_coff_loader(s0_coff_loader_fn loader);
 int s0_handoff_stage1(const uint8_t *image, uint32_t length,
                       const s0_config *config);
 int s0_agent_run(const s0_config *config);
+void s0_debug(const wchar_t *message);
+void s0_debug_error(const wchar_t *message, DWORD error);
 
 #endif

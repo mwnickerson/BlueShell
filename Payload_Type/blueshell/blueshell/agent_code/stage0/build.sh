@@ -5,10 +5,12 @@ output_type="${1:-${BLUESHELL_OUTPUT_TYPE:-exe}}"
 config="${2:-${BLUESHELL_BUILD_CONFIG:-build-config.json}}"
 rm -rf build dist
 mkdir -p dist
+debug="${BLUESHELL_DEBUG:-0}"
 cmake -S . -B build -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_TOOLCHAIN_FILE=cmake/mingw64.cmake \
-  -DBLUESHELL_CONFIG="$(realpath "$config")"
+  -DBLUESHELL_CONFIG="$(realpath "$config")" \
+  -DSTAGE0_DEBUG="$debug"
 
 case "$output_type" in
   exe) cmake --build build --target stage0_exe; cp build/stage0.exe dist/stage0.exe ;;

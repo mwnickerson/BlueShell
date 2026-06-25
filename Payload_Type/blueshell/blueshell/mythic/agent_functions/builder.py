@@ -41,6 +41,12 @@ def build_parameters():
             default_value="x64",
             description="Target architecture",
         ),
+        BuildParameter(
+            name="debug",
+            parameter_type=BuildParameterType.Boolean,
+            default_value=False,
+            description="Enable console diagnostics; never use for operational builds",
+        ),
     ]
 
 
@@ -66,6 +72,7 @@ async def build_stage(payload: PayloadType, stage: str) -> BuildResponse:
             "stage": stage,
             "architecture": payload.get_parameter("architecture"),
             "output_type": output_type,
+            "debug": bool(payload.get_parameter("debug")),
             "commands": payload.commands.get_commands(),
             "c2": serialize_c2(payload.c2info),
             "crypto": "aes256_hmac_sha256",
