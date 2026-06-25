@@ -18,7 +18,8 @@ from mythic_container.PayloadBuilder import (
 from .build_support import run_agent_build, serialize_c2
 
 
-class _BlueShellBase(PayloadType):
+class _BlueShellBase:
+    """Shared metadata without registering an incomplete PayloadType."""
     author = "root"
     agent_type = AgentType.Agent
     mythic_encrypts = True
@@ -91,14 +92,14 @@ class _BlueShellBase(PayloadType):
         return response
 
 
-class BlueShellStage0(_BlueShellBase):
+class BlueShellStage0(_BlueShellBase, PayloadType):
     name = "blueshell_stage0"
     file_extension = "bin"
     note = "BlueShell initial-stage payload."
     stage = "stage0"
 
 
-class BlueShellStage1(_BlueShellBase):
+class BlueShellStage1(_BlueShellBase, PayloadType):
     name = "blueshell_stage1"
     file_extension = "bin"
     note = "BlueShell full-feature payload."

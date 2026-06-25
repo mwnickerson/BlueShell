@@ -1,4 +1,6 @@
 import importlib.util
+import ast
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -34,6 +36,30 @@ class FakeC2:
 
 
 class BuildSupportTests(unittest.TestCase):
+    def test_external_agent_config(self):
+        root = Path(__file__).parents[3]
+        config = json.loads((root / "config.json").read_text())
+        self.assertFalse(config["exclude_payload_type"])
+        self.assertTrue(config["exclude_c2_profiles"])
+
+    def test_only_concrete_payload_types_inherit_payload_type(self):
+        builder = MODULE_PATH.with_name("builder.py")
+        tree = ast.parse(builder.read_text())
+        payload_classes = []
+        for node in tree.body:
+            if isinstance(node, ast.ClassDef):
+                bases = {
+                    base.id
+                    for base in node.bases
+                    if isinstance(base, ast.Name)
+                }
+                if "PayloadType" in bases:
+                    payload_classes.append(node.name)
+        self.assertEqual(
+            payload_classes,
+            ["BlueShellStage0", "BlueShellStage1"],
+        )
+
     def test_extensions(self):
         self.assertEqual(output_filename("x.bin", "dll"), "x.dll")
         self.assertEqual(output_filename("x.bin", "service_exe"), "x.exe")

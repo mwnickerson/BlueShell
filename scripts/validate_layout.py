@@ -27,6 +27,23 @@ def main() -> None:
         raise SystemExit("missing required paths:\n- " + "\n- ".join(missing))
 
     capabilities = json.loads((ROOT / "agent_capabilities.json").read_text())
+    install_config = json.loads((ROOT / "config.json").read_text())
+    expected_install_keys = {
+        "exclude_payload_type",
+        "exclude_c2_profiles",
+        "exclude_documentation_payload",
+        "exclude_documentation_c2",
+        "exclude_agent_icons",
+    }
+    if set(install_config) != expected_install_keys:
+        raise SystemExit(
+            f"unexpected external-agent config keys: {sorted(install_config)}"
+        )
+    if install_config["exclude_payload_type"]:
+        raise SystemExit("payload type must not be excluded")
+    if not install_config["exclude_c2_profiles"]:
+        raise SystemExit("external C2 profiles must be excluded")
+
     required_c2 = {"http", "httpx", "smb", "tcp"}
     actual_c2 = set(capabilities["c2"])
     if actual_c2 != required_c2:
