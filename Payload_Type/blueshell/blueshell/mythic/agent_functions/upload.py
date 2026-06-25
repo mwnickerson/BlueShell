@@ -1,4 +1,7 @@
+import base64
+
 from mythic_container.MythicCommandBase import *
+from mythic_container.MythicGoRPC import *
 
 from .common import StandardTasking, WINDOWS_COMMAND
 
@@ -30,3 +33,27 @@ class UploadCommand(StandardTasking, CommandBase):
     argument_class = UploadArguments
     attributes = WINDOWS_COMMAND
     supported_ui_features = ["file_browser:upload"]
+
+    async def create_go_tasking(self, taskData):
+        file_id = taskData.args.get_arg("file")
+        result = await SendMythicRPCFileGetContent(
+            MythicRPCFileGetContentMessage(AgentFileID=file_id)
+        )
+        if not result.Success:
+            return PTTaskCreateTaskingMessageResponse(
+                TaskID=taskData.Task.ID,
+                Success=False,
+                Error=result.Error,
+            )
+        remote_path = taskData.args.get_arg("remote_path")
+        taskData.args.remove_arg("file")
+        taskData.args.remove_arg("remote_path")
+        taskData.args.add_arg("path", remote_path)
+        taskData.args.add_arg(
+            "data", base64.b64encode(result.Content).decode("ascii")
+        )
+        return PTTaskCreateTaskingMessageResponse(
+            TaskID=taskData.Task.ID,
+            Success=True,
+            DisplayParams=remote_path,
+        )

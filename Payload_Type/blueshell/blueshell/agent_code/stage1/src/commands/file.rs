@@ -19,7 +19,7 @@ pub fn run(command: &str, parameters: &str) -> Result<String, String> {
         data: String::new(),
     });
     match command {
-        "cat" | "download" => fs::read(&args.path)
+        "cat" => fs::read(&args.path)
             .map(|v| STANDARD.encode(v))
             .map_err(|e| e.to_string()),
         "write" | "upload" => {
@@ -66,4 +66,14 @@ pub fn run(command: &str, parameters: &str) -> Result<String, String> {
             .map_err(|e| e.to_string()),
         _ => Err(String::new()),
     }
+}
+
+pub fn read(parameters: &str) -> Result<(String, Vec<u8>), String> {
+    let args: Args = serde_json::from_str(parameters).unwrap_or_else(|_| Args {
+        path: parameters.into(),
+        destination: String::new(),
+        data: String::new(),
+    });
+    let data = fs::read(&args.path).map_err(|e| e.to_string())?;
+    Ok((args.path, data))
 }

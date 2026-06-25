@@ -159,6 +159,27 @@ class Stage1Command(StandardTasking, CommandBase):
     argument_class = Stage1Arguments
     attributes = WINDOWS_COMMAND
 
+    async def create_go_tasking(self, taskData):
+        file_id = taskData.args.get_arg("payload")
+        result = await SendMythicRPCFileGetContent(
+            MythicRPCFileGetContentMessage(AgentFileID=file_id)
+        )
+        if not result.Success:
+            return PTTaskCreateTaskingMessageResponse(
+                TaskID=taskData.Task.ID,
+                Success=False,
+                Error=result.Error,
+            )
+        taskData.args.remove_arg("payload")
+        taskData.args.add_arg(
+            "payload", base64.b64encode(result.Content).decode("ascii")
+        )
+        return PTTaskCreateTaskingMessageResponse(
+            TaskID=taskData.Task.ID,
+            Success=True,
+            DisplayParams=file_id,
+        )
+
 
 class ProxyArguments(TaskArguments):
     def __init__(self, command_line, **kwargs):
