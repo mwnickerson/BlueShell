@@ -18,8 +18,8 @@ from mythic_container.PayloadBuilder import (
 from .build_support import run_agent_build, serialize_c2
 
 
-AGENT_PATH = pathlib.Path(".") / "blueshell" / "mythic"
-AGENT_CODE_PATH = pathlib.Path(".") / "blueshell" / "agent_code"
+AGENT_PATH = pathlib.Path(__file__).resolve().parents[1]
+AGENT_CODE_PATH = AGENT_PATH.parent / "agent_code"
 AGENT_ICON_PATH = AGENT_PATH / "agent_functions" / "blueshell.svg"
 C2_PROFILES = ["httpx", "http", "smb", "tcp"]
 
