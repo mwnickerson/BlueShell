@@ -26,6 +26,7 @@ set(STAGE0_SOURCES
     src/debug.c
     src/message.c
     src/mythic.c
+    src/mythic_tasks.c
     src/tasks.c
     src/transport.c
     src/entry.c)
