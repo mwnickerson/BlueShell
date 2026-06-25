@@ -64,6 +64,15 @@ class BuildSupportTests(unittest.TestCase):
             if isinstance(node, ast.ClassDef) and node.name in payload_classes:
                 self.assertEqual(len(node.bases), 1)
 
+    def test_main_requires_both_payload_consumers_before_sync(self):
+        main = MODULE_PATH.parents[3] / "main.py"
+        source = main.read_text()
+        self.assertIn('{"blueshell_stage0", "blueshell_stage1"}', source)
+        self.assertLess(
+            source.index("startPayloadRabbitMQ"),
+            source.index("syncPayloadData"),
+        )
+
     def test_extensions(self):
         self.assertEqual(output_filename("x.bin", "dll"), "x.dll")
         self.assertEqual(output_filename("x.bin", "service_exe"), "x.exe")
