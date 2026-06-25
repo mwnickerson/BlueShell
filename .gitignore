@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+target/
+build/
+dist/
+*.o
+*.obj
+*.pdb
+*.ilk
+*.exe
+*.dll
+*.bin
+*.raw
+.DS_Store
+

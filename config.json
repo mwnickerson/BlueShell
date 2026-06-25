@@ -1,0 +1,6 @@
+{
+  "exclude_payload_types": [],
+  "exclude_c2_profiles": [],
+  "exclude_documentation": true,
+  "exclude_wrapper_payloads": []
+}

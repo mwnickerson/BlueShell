@@ -1,0 +1,38 @@
+name: validate
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-gnu
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake mingw-w64 ninja-build
+      - name: Validate Python and layout
+        run: |
+          python3 -m compileall -q Payload_Type/blueshell
+          python3 scripts/validate_layout.py
+      - name: Test stage 1
+        run: cargo test --manifest-path Payload_Type/blueshell/blueshell/agent_code/stage1/Cargo.toml
+      - name: Cross-check stage 1
+        run: cargo check --release --target x86_64-pc-windows-gnu --manifest-path Payload_Type/blueshell/blueshell/agent_code/stage1/Cargo.toml
+      - name: Build stage 0
+        run: |
+          cmake -S Payload_Type/blueshell/blueshell/agent_code/stage0 \
+            -B /tmp/blueshell-stage0 \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc \
+            -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++
+          cmake --build /tmp/blueshell-stage0

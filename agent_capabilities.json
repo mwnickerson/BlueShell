@@ -1,0 +1,31 @@
+{
+  "os": ["Windows"],
+  "languages": ["C", "C++", "Rust", "Python"],
+  "features": {
+    "mythic": {
+      "checkin": true,
+      "get_tasking": true,
+      "post_response": true,
+      "file_download": true,
+      "file_upload": true,
+      "socks": true,
+      "rpfwd": true,
+      "p2p": true,
+      "interactive": false,
+      "process_browser": true,
+      "file_browser": true
+    },
+    "custom": [
+      "stage0-to-stage1 promotion",
+      "COFF execution",
+      "build-time command selection",
+      "polymorphic build seed"
+    ]
+  },
+  "payload_output": ["exe", "dll", "service", "shellcode"],
+  "architectures": ["AMD_x64"],
+  "c2": ["http", "httpx", "smb", "tcp"],
+  "supported_wrappers": ["service", "dll"],
+  "mythic_version": "3.x",
+  "agent_version": "0.1.0"
+}
