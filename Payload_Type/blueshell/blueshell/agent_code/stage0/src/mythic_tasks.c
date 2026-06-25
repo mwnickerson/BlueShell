@@ -302,11 +302,9 @@ int s0_process_mythic_tasks(const uint8_t *json, uint32_t json_len,
     const uint8_t *tasks, *cursor, *end = json + json_len;
     int first = 1;
     if (!append(response_json,
-                "{\"action\":\"get_tasking\",\"tasking_size\":-1,"
-                "\"get_delegate_tasks\":true,\"responses\":[",
+                "{\"action\":\"post_response\",\"responses\":[",
                 (uint32_t)strlen(
-                "{\"action\":\"get_tasking\",\"tasking_size\":-1,"
-                "\"get_delegate_tasks\":true,\"responses\":[")))
+                "{\"action\":\"post_response\",\"responses\":[")))
         return 0;
     tasks = find_bytes(json, json_len, "\"tasks\"");
     if (!tasks) return append(response_json, "]}", 2);

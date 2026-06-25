@@ -21,6 +21,12 @@ pub struct CommandResult {
     pub action: CommandAction,
 }
 
+fn text_response(output: String) -> String {
+    // Mythic displays user_output verbatim. Only the outer agent envelope and
+    // binary protocol fields (file/proxy chunks) are Base64 encoded.
+    output
+}
+
 pub fn dispatch(task: Task) -> CommandResult {
     let mut action = CommandAction::None;
     let result = match task.command.as_str() {
@@ -57,14 +63,14 @@ pub fn dispatch(task: Task) -> CommandResult {
             task_id: task.id,
             completed: Some(true),
             status: Some("success".into()),
-            user_output: Some(output),
+            user_output: Some(text_response(output)),
             download: None,
         },
         Err(output) => TaskResponse {
             task_id: task.id,
             completed: Some(true),
             status: Some(format!("error: {output}")),
-            user_output: Some(output),
+            user_output: Some(text_response(output)),
             download: None,
         },
     };
@@ -145,6 +151,14 @@ mod tests {
         assert_eq!(
             result.response.status.as_deref(),
             Some("error: invalid port")
+        );
+    }
+
+    #[test]
+    fn shell_output_is_not_base64_encoded() {
+        assert_eq!(
+            text_response("turbo\\domainuser\r\n".into()),
+            "turbo\\domainuser\r\n"
         );
     }
 }

