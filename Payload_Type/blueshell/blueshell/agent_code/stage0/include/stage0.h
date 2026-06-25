@@ -72,7 +72,7 @@ typedef struct {
     uint8_t reserved;
     wchar_t host[128];
     wchar_t path[96];
-    uint8_t payload_id[16];
+    char payload_id[37];
     uint8_t key[32];
 } s0_config;
 
@@ -96,6 +96,10 @@ int s0_frame_pack(uint8_t kind, uint16_t flags, uint32_t stream_id,
                   const void *payload, uint32_t length, s0_buffer *out);
 int s0_frame_unpack(const uint8_t *data, uint32_t length,
                     s0_frame_header *header, const uint8_t **payload);
+int s0_mythic_encode(const char *uuid, const uint8_t key[32],
+                     const void *json, uint32_t json_len, s0_buffer *out);
+int s0_mythic_decode(const uint8_t key[32], const void *encoded,
+                     uint32_t encoded_len, char uuid[37], s0_buffer *json);
 int s0_proxy_pack(uint8_t kind, uint32_t server_id, uint32_t port,
                   int exit_flag, const void *data, uint32_t length,
                   s0_buffer *out);

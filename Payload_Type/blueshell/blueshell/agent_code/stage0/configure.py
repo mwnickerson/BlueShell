@@ -15,7 +15,7 @@ cfg = json.loads(path.read_text()) if path.is_file() else {
     "interval_ms": 5000,
     "jitter_pct": 0,
 }
-payload_id = ", ".join(f"0x{x:02x}" for x in uuid.UUID(cfg["payload_uuid"]).bytes)
+payload_uuid = str(uuid.UUID(cfg["payload_uuid"]))
 key = cfg.get("key_b64", "")
 import base64
 key_bytes = base64.b64decode(key) if key else b""
@@ -31,7 +31,7 @@ text = f"""#define STAGE0_STAMP_TRANSPORT {transport}
 #define STAGE0_STAMP_SECURE {1 if transport == 2 else 0}
 #define STAGE0_STAMP_HOST L"{host}"
 #define STAGE0_STAMP_PATH L"{uri}"
-#define STAGE0_STAMP_PAYLOAD_ID {{{payload_id}}}
+#define STAGE0_STAMP_PAYLOAD_ID "{payload_uuid}"
 #define STAGE0_STAMP_KEY {{{key_data}}}
 """
 Path(sys.argv[2]).write_text(text)
