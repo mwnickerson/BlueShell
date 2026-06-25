@@ -59,6 +59,9 @@ class BuildSupportTests(unittest.TestCase):
             payload_classes,
             ["BlueShellStage0", "BlueShellStage1"],
         )
+        for node in tree.body:
+            if isinstance(node, ast.ClassDef) and node.name in payload_classes:
+                self.assertEqual(len(node.bases), 1)
 
     def test_extensions(self):
         self.assertEqual(output_filename("x.bin", "dll"), "x.dll")
