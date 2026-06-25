@@ -15,3 +15,6 @@ dist/
 *.raw
 .DS_Store
 
+# Stage1 is an application payload; its dependency graph must be reproducible
+# and available to `cargo vendor --locked` inside the Mythic container build.
+!Payload_Type/blueshell/blueshell/agent_code/stage1/Cargo.lock
