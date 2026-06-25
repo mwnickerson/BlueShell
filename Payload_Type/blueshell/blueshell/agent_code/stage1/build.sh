@@ -8,7 +8,7 @@ export BLUESHELL_BUILD_CONFIG="$(realpath "$config")"
 
 rm -rf dist
 mkdir -p dist
-cargo build --release --target "$target"
+cargo build --release --locked --offline --target "$target"
 release="target/$target/release"
 
 case "$output_type" in

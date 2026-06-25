@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.18)
 project(stage0 C)
 
 set(CMAKE_C_STANDARD 11)
@@ -16,7 +16,10 @@ file(MAKE_DIRECTORY "${GENERATED_DIR}")
 execute_process(
   COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/configure.py"
           "${BLUESHELL_CONFIG}" "${GENERATED_DIR}/generated_config.h"
-  COMMAND_ERROR_IS_FATAL ANY)
+  RESULT_VARIABLE CONFIGURE_RESULT)
+if(NOT CONFIGURE_RESULT EQUAL 0)
+  message(FATAL_ERROR "failed to generate stage0 build configuration")
+endif()
 
 set(STAGE0_SOURCES
     src/core.c
@@ -28,7 +31,7 @@ set(STAGE0_SOURCES
 add_library(stage0_core OBJECT ${STAGE0_SOURCES})
 target_include_directories(stage0_core PUBLIC include "${GENERATED_DIR}")
 target_compile_definitions(stage0_core PRIVATE
-    WIN32_LEAN_AND_MEAN NOMINMAX
+    WIN32_LEAN_AND_MEAN NOMINMAX _WIN32_WINNT=0x0600
     STAGE0_TRANSPORT=${STAGE0_TRANSPORT}
     $<$<BOOL:${STAGE0_DEBUG}>:STAGE0_DEBUG=1>)
 target_compile_options(stage0_core PRIVATE
