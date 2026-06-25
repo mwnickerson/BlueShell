@@ -41,6 +41,7 @@ class BuildSupportTests(unittest.TestCase):
         config = json.loads((root / "config.json").read_text())
         self.assertFalse(config["exclude_payload_type"])
         self.assertTrue(config["exclude_c2_profiles"])
+        self.assertFalse(config["exclude_agent_icons"])
 
     def test_only_concrete_payload_types_inherit_payload_type(self):
         builder = MODULE_PATH.with_name("builder.py")

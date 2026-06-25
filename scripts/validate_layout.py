@@ -16,6 +16,7 @@ REQUIRED = (
     SERVICE / "Dockerfile",
     SERVICE / "main.py",
     SERVICE / "blueshell" / "mythic" / "agent_functions" / "__init__.py",
+    SERVICE / "blueshell" / "mythic" / "agent_functions" / "blueshell.svg",
     SERVICE / "blueshell" / "agent_code" / "stage0" / "CMakeLists.txt",
     SERVICE / "blueshell" / "agent_code" / "stage1" / "Cargo.toml",
 )
@@ -43,6 +44,8 @@ def main() -> None:
         raise SystemExit("payload type must not be excluded")
     if not install_config["exclude_c2_profiles"]:
         raise SystemExit("external C2 profiles must be excluded")
+    if install_config["exclude_agent_icons"]:
+        raise SystemExit("agent icons must not be excluded")
 
     required_c2 = {"http", "httpx", "smb", "tcp"}
     actual_c2 = set(capabilities["c2"])

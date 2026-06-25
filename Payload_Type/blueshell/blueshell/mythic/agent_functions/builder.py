@@ -20,6 +20,7 @@ from .build_support import run_agent_build, serialize_c2
 
 AGENT_PATH = pathlib.Path(".") / "blueshell" / "mythic"
 AGENT_CODE_PATH = pathlib.Path(".") / "blueshell" / "agent_code"
+AGENT_ICON_PATH = AGENT_PATH / "agent_functions" / "blueshell.svg"
 C2_PROFILES = ["httpx", "http", "smb", "tcp"]
 
 
@@ -112,6 +113,7 @@ class BlueShellStage0(PayloadType):
     c2_profiles = C2_PROFILES
     agent_path = AGENT_PATH
     agent_code_path = AGENT_CODE_PATH
+    agent_icon_path = AGENT_ICON_PATH
     build_parameters = build_parameters()
     build_steps = build_steps()
 
@@ -134,6 +136,7 @@ class BlueShellStage1(PayloadType):
     c2_profiles = C2_PROFILES
     agent_path = AGENT_PATH
     agent_code_path = AGENT_CODE_PATH
+    agent_icon_path = AGENT_ICON_PATH
     build_parameters = build_parameters()
     build_steps = build_steps()
 

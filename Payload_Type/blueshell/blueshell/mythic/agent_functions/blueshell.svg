@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="35%" r="70%">
+      <stop offset="0" stop-color="#203b73"/>
+      <stop offset="1" stop-color="#080c1c"/>
+    </radialGradient>
+    <linearGradient id="shell" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#43b9ff"/>
+      <stop offset="1" stop-color="#0755ca"/>
+    </linearGradient>
+  </defs>
+  <circle cx="128" cy="128" r="124" fill="url(#bg)" stroke="#5ecbff" stroke-width="8"/>
+  <path d="M32 185c54-22 104-40 188-51" fill="none" stroke="#219cff"
+        stroke-width="8" stroke-linecap="round" opacity=".45"/>
+  <!-- purple-capped mustached thrower -->
+  <path d="M39 186c11-46 43-74 87-80l31 40-25 60z" fill="#3d176f"/>
+  <ellipse cx="101" cy="83" rx="42" ry="39" fill="#f1b18d"/>
+  <path d="M56 77c6-37 64-53 91-12l-13 17c-27-14-50-13-78-5z" fill="#5f2397"/>
+  <ellipse cx="103" cy="53" rx="18" ry="13" fill="#fff"/>
+  <path d="M95 43l8 14 8-14" fill="none" stroke="#5f2397" stroke-width="7"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <ellipse cx="84" cy="81" rx="5" ry="10" fill="#161321"/>
+  <ellipse cx="118" cy="81" rx="5" ry="10" fill="#161321"/>
+  <path d="M72 103c17-15 22-13 30-2 8-11 14-13 31 2-15 4-21 9-31 18-10-9-16-14-30-18z"
+        fill="#15131a"/>
+  <path d="M119 136c27-9 41-15 61-28" fill="none" stroke="#f1b18d"
+        stroke-width="22" stroke-linecap="round"/>
+  <circle cx="181" cy="107" r="13" fill="#fff"/>
+  <!-- blue shell in throwing hand / foreground -->
+  <g transform="translate(174 80) rotate(20)">
+    <path d="M10 22L0 5l20 5L31-8l10 19 21-4-10 18 13 16-22 1-8 21-13-18-22 5 8-20-15-13z"
+          fill="#f4f7ff" stroke="#b7c6e8" stroke-width="3"/>
+    <ellipse cx="29" cy="29" rx="31" ry="27" fill="url(#shell)" stroke="#072b75" stroke-width="5"/>
+    <path d="M8 25c12-9 29-13 49-8M11 40c14-7 29-8 44-3" fill="none"
+          stroke="#9ee5ff" stroke-width="5" stroke-linecap="round"/>
+    <path d="M9 49L-7 64 16 61M48 53l19 13-23 1" fill="#fff"
+          stroke="#b7c6e8" stroke-width="4" stroke-linejoin="round"/>
+  </g>
+</svg>
