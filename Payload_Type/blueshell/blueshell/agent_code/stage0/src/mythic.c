@@ -100,7 +100,13 @@ int s0_mythic_encode(const char *uuid, const uint8_t key[32],
     if (CryptBinaryToStringA(raw.data, raw.length,
                              CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF,
                              (LPSTR)out->data, &encoded_len)) {
-        out->length = encoded_len - 1;
+        /*
+         * The query call includes space for the terminator, while the output
+         * count semantics vary by Windows implementation. Derive the HTTP
+         * body length from the actual terminated string instead of dropping
+         * the final Base64 character.
+         */
+        out->length = (uint32_t)lstrlenA((LPCSTR)out->data);
         ok = 1;
     }
 done:
